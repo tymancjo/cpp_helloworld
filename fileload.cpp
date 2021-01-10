@@ -16,8 +16,7 @@ std::vector <std::vector<std::string>> readFile(std::string sFilename)
         }
 
 		while (!f.eof())
-		{
-            std::string line;
+		{   std::string line;
             std::getline(f, line);
             
             if (!line.empty()){
@@ -33,7 +32,6 @@ std::vector <std::vector<std::string>> readFile(std::string sFilename)
 	    }}}
         return s;
     }
-
 
 
 int main(int argc, char *argv[])
@@ -55,3 +53,8 @@ int main(int argc, char *argv[])
     }
 	return 0;
 }
+
+
+
+
+

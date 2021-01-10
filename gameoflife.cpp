@@ -101,6 +101,7 @@ public:
 
 	bool OnUserUpdate(float fElapsedTime) override
 	{
+        bool step = false;
 		// called once per frame
         for (int x = 0; x < X; x++)
             for (int y = 0; y < Y; y++)
@@ -114,14 +115,20 @@ public:
         // checking for user input
         if (GetKey(olc::Key::SPACE).bPressed) is_active = !is_active;
         if (GetKey(olc::Key::R).bPressed) restart();
+        if (GetKey(olc::Key::S).bPressed) {
+            step = true; 
+            is_active = false;
+        }
         if (GetKey(olc::Key::C).bPressed) 
         {
             int rclr = rand() % 150;
             pix = olc::Pixel(rclr / 3, rclr * 2/3, rclr);
         } 
 
-        if (is_active)
+        if (is_active || step){
             next_gen();
+            step = false;
+        }
 
         return true;
 	}
