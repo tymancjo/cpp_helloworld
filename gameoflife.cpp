@@ -126,7 +126,6 @@ public:
             if (GetKey(olc::Key::SPACE).bPressed) startup = false;
 
                 std::vector <std::string> main_text;
-                uint32_t text_size = 1 + X / 300;
 
                 main_text.push_back("Game of Life [C++]");
                 main_text.push_back("by Tymancjo");
@@ -144,11 +143,15 @@ public:
                 main_text.push_back("Press SPACE...");
             
             
+                uint32_t text_size = 1 + X / 300;
+                uint32_t text_sizeY = 1 + Y / (main_text.size() * 50 );
+                text_size = std::min(text_size, text_sizeY);
+
             for (int k = 0; k < main_text.size(); k++){
                 std::string this_line = main_text[k];
                 int txtX = (X - 7 * text_size * this_line.length()) / 2;
 
-                DrawString(txtX, 20 + k * 12 *text_size, this_line, olc::WHITE, text_size);
+                DrawString(txtX, 20 + k * 12 * text_size, this_line, olc::WHITE, text_size);
             }
 
         } else {
