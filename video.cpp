@@ -16,24 +16,24 @@ struct results {
 };
 
 results readFileAsText(std::string sFilename,  char deliminator = ';')
-	{
+    {
         results output;
-        
+
         std::ifstream f(sFilename);
         if (!f.is_open()){
             output.sucess = false;
             return output;
         }
 
-		while (!f.eof())
-		{   std::string line;
+        while (!f.eof())
+        {   std::string line;
             std::getline(f, line);
-            
+
             if (!line.empty()){
                 if (line.at(0) != '#'){
                     std::istringstream iss(line);
                     std::string token;
-                    
+
                     std::vector < std::string> lins;
                     while(std::getline(iss, token, deliminator)){
                         boost::trim(token);
@@ -42,7 +42,7 @@ results readFileAsText(std::string sFilename,  char deliminator = ';')
                     }
 
                     output.strMatrix.push_back(lins);
-	    }}}
+        }}}
         output.sucess = true;
         return output;
     };
@@ -136,7 +136,7 @@ int main(int argc, char *argv[])
         std::cout << "[ERROR] issue with data parse..." << std::endl;
         return -3;
     }
-    
+
     fileFloatData = fOutput.fMatrix;
     int columns = fileFloatData.size();
 
@@ -162,13 +162,13 @@ int main(int argc, char *argv[])
     int end_frame = 1500;
     int videoSyncIndex = findIndex(fileFloatData[columns -1], 1.0f, 1);
     std::cout << "video sync index " << videoSyncIndex << std::endl;
-    
+
 
     for(int frameNum = 0; frameNum < cap.get(cv::CAP_PROP_FRAME_COUNT);frameNum++)
         {
             cv::Mat frame;
             //get the next frame from video
-            cap >> frame;  
+            cap >> frame;
             if (frameNum > start_frame)
                 all_frames.push_back(frame);
             if (frameNum > end_frame)
@@ -177,52 +177,65 @@ int main(int argc, char *argv[])
 
     cv::namedWindow("Video",1);
 
-    int plotWpx = 1000;
+    int plotWpx = 800;
     int plotHpx = 800;
     cv::Mat plotFrame(plotHpx, plotWpx, CV_8UC3, cv::Scalar(0,0,0));
+    cv::Mat videoFrame;
 
     int klatka = 0;
     int step = 1;
 
     int playDelay = 1;
+    int plotW = 50;
 
     while (true){
-        cv::putText(all_frames[klatka], std::to_string(klatka), cv::Point(10,10), cv::FONT_HERSHEY_SIMPLEX,0.4,cv::Scalar(200,200,200),1,cv::LINE_AA);
+        videoFrame = all_frames[klatka].clone();
+        cv::putText(videoFrame, std::to_string(klatka), cv::Point(10,10), cv::FONT_HERSHEY_SIMPLEX,0.4,cv::Scalar(200,200,200),1,cv::LINE_AA);
 
-        cv::putText(all_frames[klatka], std::to_string(fileFloatData[0][0]*fileFloatData[0][videoSyncIndex + klatka + 1]), cv::Point(10,50), cv::FONT_HERSHEY_SIMPLEX,0.4,cv::Scalar(200,200,200),1,cv::LINE_AA);
+        cv::putText(videoFrame, std::to_string(playDelay), cv::Point(10,30), cv::FONT_HERSHEY_SIMPLEX,0.4,cv::Scalar(200,200,200),1,cv::LINE_AA);
+
+        cv::putText(videoFrame, std::to_string(fileFloatData[0][0]*fileFloatData[0][videoSyncIndex + klatka + 1]*1000), cv::Point(10,60), cv::FONT_HERSHEY_SIMPLEX,0.8,cv::Scalar(200,200,200),1,cv::LINE_AA);
 
         // working on the graphs
         plotFrame = cv::Scalar(0,0,0);
 
-        int plotW = 100;
         int plotCenterIndex = videoSyncIndex + klatka + 1;
-        int plotStartIdx = plotCenterIndex - plotW / 2;
-        int plotEndIdx = plotCenterIndex + plotW / 2;
+        int plotStartIdx = plotCenterIndex - plotW;
+        int plotEndIdx = plotCenterIndex + plotW;
 
-        int plotdX = plotWpx / plotW;
+        int plotdX = (int)((float)plotWpx / (2.0f * plotW));
         float plotYscale = (plotHpx - 10) / 2.0f;
 
-        int pixelXpos0 = 0;
         int pixelYpos = plotHpx / 2;
 
-        for (int idx = plotStartIdx; idx < plotEndIdx; idx ++){
-            int pixelXpos1 = pixelXpos0 + plotdX;
+        // axis lines
+        cv::line(plotFrame, cv::Point(0,pixelYpos), cv::Point(plotWpx, pixelYpos),cv::Scalar(255,255,255),1,8,0);
+        cv::line(plotFrame, cv::Point(plotWpx/2,0), cv::Point(plotWpx/2, plotHpx),cv::Scalar(255,255,255),1,8,0);
 
+        // drawing right from cursor
+        int pixelXpos0 = plotWpx / 2;
+        for (int idx = plotCenterIndex; idx < plotEndIdx+1; idx++){
+            int pixelXpos1 = pixelXpos0 + plotdX;
             float pointValue0 = pixelYpos - (int)(fileFloatData[4][idx] * plotYscale);
             float pointValue1 = pixelYpos - (int)(fileFloatData[4][idx + 1] * plotYscale);
-            // axis lines
-            cv::line(plotFrame, cv::Point(0,pixelYpos), cv::Point(plotWpx, pixelYpos),cv::Scalar(255,255,255),1,8,0);
-            cv::line(plotFrame, cv::Point(plotWpx/2,0), cv::Point(plotWpx/2, plotHpx),cv::Scalar(255,255,255),1,8,0);
-
 
             cv::line(plotFrame, cv::Point(pixelXpos0,pointValue0), cv:: Point(pixelXpos1, pointValue1),cv::Scalar(0,255,0),1,8,0);
+            pixelXpos0 = pixelXpos1;
+        }
 
-            pixelXpos0 =  pixelXpos1; 
+        // drawing left from cursor
+        pixelXpos0 = plotWpx / 2;
+        for (int idx = plotCenterIndex-1; idx > plotStartIdx-1 ; idx--){
+            int pixelXpos1 = pixelXpos0 - plotdX;
+            float pointValue1 = pixelYpos - (int)(fileFloatData[4][idx] * plotYscale);
+            float pointValue0 = pixelYpos - (int)(fileFloatData[4][idx + 1] * plotYscale);
+            cv::line(plotFrame, cv::Point(pixelXpos0,pointValue0), cv:: Point(pixelXpos1, pointValue1),cv::Scalar(0,255,0),1,8,0);
+            pixelXpos0 = pixelXpos1;
         }
 
 
 
-        cv::imshow("Video", all_frames[klatka]);
+        cv::imshow("Video", videoFrame);
         cv::imshow("Plot", plotFrame);
         klatka += step;
 
@@ -236,17 +249,38 @@ int main(int argc, char *argv[])
         }
         int theKey = cv::waitKey(playDelay);
         if(theKey == 27) break;
-        if(theKey == 45) playDelay++; // the -_ key
-        if(theKey == 61) playDelay--; // the += key
+        if(theKey == 45) playDelay += 1 + playDelay / 10; // the -_ key
+        if(theKey == 61) playDelay -= 1 + playDelay / 2; // the += key
+
+        if(theKey == 104) step = 1; // the h key
+        if(theKey == 107) step = 0; // the k key
+        if(theKey == 59) step = -1; // the ; key
+
+        if(theKey == 106){
+            // the j key
+            klatka--;
+            step = 0;
+        }
+        if(theKey == 108){
+            // the l key
+            klatka++;
+            step = 0;
+        }
+
+        if(theKey == 91) plotW -= 10; // the [ key
+        if(theKey == 93) plotW += 10; // the ] key
+
         playDelay = (playDelay < 1)? 1:playDelay;
-        
+        plotW = (plotW < 10)? 10:plotW;
+        plotW = (2*plotW >= plotWpx)? (plotWpx/2):plotW;
+
     }
 
 
     //for(;;)
     //{
         //cv::Mat frame;
-        //cap >> frame; // get a new frame from camera        
+        //cap >> frame; // get a new frame from camera
         //cv::imshow("Video", frame);
         //if(cv::waitKey(30) == 27) break;
     //}
