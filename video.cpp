@@ -162,10 +162,15 @@ int main(int argc, char *argv[])
     int posY = fullPlotHpx / 2;
     float plotYscale = (fullPlotHpx - 10) / 2.0f;
 
-    cv::Mat fullPlotFrame(fullPlotHpx, fullPlotWpx, CV_8UC3, cv::Scalar(0,0,0));
+    cv::Mat fullPlotFrame(fullPlotHpx + 50, fullPlotWpx, CV_8UC3, cv::Scalar(0,0,0));
     fullPlotFrame = cv::Scalar(0,0,0);
     // axis lines
     cv::line(fullPlotFrame, cv::Point(0,posY), cv::Point(fullPlotWpx, posY),cv::Scalar(255,255,255),1,8,0);
+    // adding the keys info text
+    std::string keys_desc = "<--H |<-J | [K] | L-> | ;-->";
+    cv::putText(fullPlotFrame, keys_desc, cv::Point((fullPlotWpx - 7*keys_desc.size()) / 2,fullPlotHpx+10), cv::FONT_HERSHEY_SIMPLEX,0.4,cv::Scalar(200,200,200),1,cv::LINE_AA);
+    keys_desc = "[E] set current frame as end lock| [R] release end lock |     [ zoom in |  ]zoom out";
+    cv::putText(fullPlotFrame, keys_desc, cv::Point((fullPlotWpx - 7*keys_desc.size()) / 2,fullPlotHpx+30), cv::FONT_HERSHEY_SIMPLEX,0.4,cv::Scalar(200,200,200),1,cv::LINE_AA);
 
     // figuring out the step for data plot
     int dataStep = 1;
@@ -173,14 +178,9 @@ int main(int argc, char *argv[])
     if (fileFloatData[4].size() > fullPlotWpx){
        dataStep = fileFloatData[0].size() / fullPlotWpx;
     }
-
     int dXpx = fullPlotWpx * dataStep / fileFloatData[0].size();
     dXpx = (dXpx < 1)? 1:dXpx;
 
-    // output some info
-    std::cout << "Data step: " << dataStep << std::endl;
-    std::cout << "Data scale: " << plotYscale << std::endl;
-    std::cout << "dXpx: " << dXpx << std::endl;
 
     // plotting the whole plot-lines
     int posX = 0;
@@ -197,6 +197,12 @@ int main(int argc, char *argv[])
         posX = posX1;
     }
 
+    // output some info
+    std::cout << "Data step: " << dataStep << std::endl;
+    std::cout << "Data scale: " << plotYscale << std::endl;
+    std::cout << "dXpx: " << dXpx << std::endl;
+
+    // preparing frame buffers
     cv::Mat videoFrame;
     std::vector <cv::Mat> frame_buffer;
     cv::Mat fullPlot;
@@ -206,9 +212,13 @@ int main(int argc, char *argv[])
     // compression and it key frames stuff
     // mentioned here:
     // https://stackoverflow.com/questions/19404245/opencv-videocapture-set-cv-cap-prop-pos-frames-not-working
-    for (int idx = 0; idx < 500; idx++)
-        cap >> videoFrame;
+    //for (int idx = 0; idx < 500; idx++)
+        //cap >> videoFrame;
 
+    // skipping the video to 500 frame
+    cap.set(cv::CAP_PROP_POS_FRAMES, 500 );
+
+    int klatka_stop = 30000; // just something that rather be always way more then frames
     int klatka = 0;
     int klatka_total = -1;
     int klatka_max = -1;
@@ -228,6 +238,12 @@ int main(int argc, char *argv[])
     while (true){
         klatka_max = cv::max(klatka_total, klatka_max);
 
+        // checking  if the play reached the stop position
+        if (klatka_total >= klatka_stop && step == 1){
+            step = 0;
+        }
+
+        // if we are at the end of buffer we read next frames from file
         if (step == 1 && (klatka >= frame_buffer.size()-1 || first_loop)){
             if (cap.read(videoFrame)){
                 if (frame_buffer.size() > 300){
@@ -239,11 +255,14 @@ int main(int argc, char *argv[])
                 single = true;
             }
         }
+
         first_loop = false;
+        // keeping the play frame on the last one from the buffer
         if(klatka > frame_buffer.size()-1){
             klatka = (frame_buffer.size()-1);
         }
 
+        // cloning frames before putting text on it
         videoFrame = frame_buffer[klatka].clone();
         fullPlot = fullPlotFrame.clone();
 
@@ -255,7 +274,6 @@ int main(int argc, char *argv[])
         cv::putText(videoFrame, std::to_string(fileFloatData[0][0]*fileFloatData[0][videoSyncIndex + klatka + 1]*1000), cv::Point(10,60), cv::FONT_HERSHEY_SIMPLEX,0.8,cv::Scalar(200,200,200),1,cv::LINE_AA);
 
         // working on the graphs
-        // full plot frame
 
         // zoomed frame
         plotFrame = cv::Scalar(0,0,0);
@@ -293,7 +311,7 @@ int main(int argc, char *argv[])
             pixelXpos0 = pixelXpos1;
         }
 
-        // full plot update
+        // full plot frame
         int cursorX = dXpx * (1 + plotCenterIndex) / dataStep;
         int cursorXL = dXpx * (1 + plotCenterIndex - plotW) / dataStep;
         int cursorXR = dXpx * (1 + plotCenterIndex + plotW) / dataStep;
@@ -306,11 +324,12 @@ int main(int argc, char *argv[])
         cv::line(fullPlot, cv::Point(cursorXbuffor,0), cv:: Point(cursorXbuffor, fullPlotHpx),cv::Scalar(255,0,255),1,8,0);
         cv::line(fullPlot, cv::Point(cursorXbufforEnd,0), cv:: Point(cursorXbufforEnd, fullPlotHpx),cv::Scalar(255,0,255),1,8,0);
 
+        // displaying the windows 
         cv::imshow("Video", videoFrame);
         cv::imshow("Plot", plotFrame);
         cv::imshow("Full Plot", fullPlot);
 
-
+        // handling the progress and keys
         klatka += step;
         klatka_total += step;
 
@@ -323,6 +342,9 @@ int main(int argc, char *argv[])
         if(theKey == 27) break;
         if(theKey == 45) playDelay += 1 + playDelay / 10; // the -_ key
         if(theKey == 61) playDelay -= 1 + playDelay / 2; // the += key
+
+        if(theKey == 101) klatka_stop = klatka_total;  // the e key
+        if(theKey == 114) klatka_stop = 30000;  // the r key
 
         if(theKey == 104) step = -1; // the h key
         if(theKey == 107) step = 0; // the k key
