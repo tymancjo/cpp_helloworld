@@ -1,0 +1,4 @@
+# vide file to load
+/home/tymancjo/LocalGit/ABB/ptviewer/video/15122020_Jacek_M_GErapid_11419.mp4
+# csv data file to load
+/home/tymancjo/LocalGit/ABB/ptviewer/csv_data/fileRecording11419.txt

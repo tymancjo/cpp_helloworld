@@ -109,8 +109,29 @@ int findIndex(std::vector<float> V, float treshold, int start=0){
 
 int main(int argc, char *argv[])
 {
-    std::string input_file = "/home/tymancjo/LocalGit/ABB/ptviewer/video/15122020_Jacek_M_GErapid_11419.mp4";
-    cv::VideoCapture cap(input_file);
+    // handling the line parameters
+    if (argc < 2){
+        std::cout << "[ERROR] No config file as line parameter..." << std::endl;
+        return -1;
+    }
+
+    std::string config_file = argv[1];
+    results fOutput;
+    fOutput = readFileAsText(config_file, ';' );
+
+    if (!fOutput.sucess){
+        std::cout << "[ERROR] Config file reading error..." << std::endl;
+        return -1;
+    }
+    
+    // reading the config parameters
+    std::string input_video_file = fOutput.strMatrix[0][0];
+    std::string input_csv_file = fOutput.strMatrix[1][0];
+
+
+
+    //std::string input_file = "/home/tymancjo/LocalGit/ABB/ptviewer/video/15122020_Jacek_M_GErapid_11419.mp4";
+    cv::VideoCapture cap(input_video_file);
     int total_video_frames =  cap.get(cv::CAP_PROP_FRAME_COUNT);
 
     if(!cap.isOpened())  // check if we succeeded
@@ -119,10 +140,9 @@ int main(int argc, char *argv[])
     // the csv file load drill
     std::vector <std::vector<std::string>> fileData;
     std::vector <std::vector<float>> fileFloatData;
-    std::string file_to_load = "/home/tymancjo/LocalGit/ABB/ptviewer/csv_data/fileRecording11419.txt";
+    //std::string file_to_load = "/home/tymancjo/LocalGit/ABB/ptviewer/csv_data/fileRecording11419.txt";
 
-    results fOutput;
-    fOutput = readFileAsText(file_to_load, ';' );
+    fOutput = readFileAsText(input_csv_file, ';' );
 
     if(!fOutput.sucess){
         std::cout << "[ERROR] issue with data file..." << std::endl;
