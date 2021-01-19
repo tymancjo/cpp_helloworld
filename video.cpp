@@ -167,9 +167,9 @@ int main(int argc, char *argv[])
     // axis lines
     cv::line(fullPlotFrame, cv::Point(0,posY), cv::Point(fullPlotWpx, posY),cv::Scalar(255,255,255),1,8,0);
     // adding the keys info text
-    std::string keys_desc = "<--H |<-J | [K] | L-> | ;-->";
+    std::string keys_desc = "<--(H) |<-(J) | [K] | (L)-> | (;)-->       (-)/(+) change play speed";
     cv::putText(fullPlotFrame, keys_desc, cv::Point((fullPlotWpx - 7*keys_desc.size()) / 2,fullPlotHpx+10), cv::FONT_HERSHEY_SIMPLEX,0.4,cv::Scalar(200,200,200),1,cv::LINE_AA);
-    keys_desc = "[E] set current frame as end lock| [R] release end lock |     [ zoom in |  ]zoom out";
+    keys_desc = "(E) set current frame as end lock (R) release end lock  ([) zoom in  (]) zoom out";
     cv::putText(fullPlotFrame, keys_desc, cv::Point((fullPlotWpx - 7*keys_desc.size()) / 2,fullPlotHpx+30), cv::FONT_HERSHEY_SIMPLEX,0.4,cv::Scalar(200,200,200),1,cv::LINE_AA);
 
     // figuring out the step for data plot
@@ -216,7 +216,8 @@ int main(int argc, char *argv[])
         //cap >> videoFrame;
 
     // skipping the video to 500 frame
-    cap.set(cv::CAP_PROP_POS_FRAMES, 500 );
+    int video_start_frame = 500;
+    cap.set(cv::CAP_PROP_POS_FRAMES, video_start_frame);
 
     int klatka_stop = 30000; // just something that rather be always way more then frames
     int klatka = 0;
@@ -324,7 +325,7 @@ int main(int argc, char *argv[])
         cv::line(fullPlot, cv::Point(cursorXbuffor,0), cv:: Point(cursorXbuffor, fullPlotHpx),cv::Scalar(255,0,255),1,8,0);
         cv::line(fullPlot, cv::Point(cursorXbufforEnd,0), cv:: Point(cursorXbufforEnd, fullPlotHpx),cv::Scalar(255,0,255),1,8,0);
 
-        // displaying the windows 
+        // displaying the windows
         cv::imshow("Video", videoFrame);
         cv::imshow("Plot", plotFrame);
         cv::imshow("Full Plot", fullPlot);
@@ -351,12 +352,9 @@ int main(int argc, char *argv[])
         if(theKey == 59) step = 1; // the ; key
 
         if(theKey == 106){
-            // the j key
-            if(klatka > 0){
-                klatka--;
-                klatka_total--;
-            }
-            step = 0;
+             //the j key
+             step = -1;
+             single = true;
         }
         if(theKey == 108){
             // the l key
@@ -367,12 +365,34 @@ int main(int argc, char *argv[])
         if(theKey == 91) plotW -= 10; // the [ key
         if(theKey == 93) plotW += 10; // the ] key
 
+        if (theKey == 81){
+            // the Q key - reset  playback
+            klatka_stop = 30000; // just something that rather be always way more then frames
+            klatka = 0;
+            klatka_total = -1;
+            klatka_max = -1;
+            step = 1;
+
+            single = !false;
+            first_loop = true;
+            cap.set(cv::CAP_PROP_POS_FRAMES, video_start_frame);
+
+            //for (int i=0; i < frame_buffer.size(); i++){
+                    //frame_buffer.erase(frame_buffer.begin());
+            //}
+            frame_buffer.clear(); 
+            // logging
+            std::cout << "vstart " << video_start_frame << std::endl;
+            std::cout << "buffer " << frame_buffer.size() << std::endl;
+        }
+
+
         playDelay = (playDelay < 1)? 1:playDelay;
         plotW = (plotW < 10)? 10:plotW;
         plotW = (2*plotW >= plotWpx)? (plotWpx/2):plotW;
 
         if (klatka < 0){
-            step = 1;
+            step = 0;
             single = true;
             klatka = 0;
             klatka_total++;
