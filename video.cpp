@@ -103,7 +103,7 @@ int findIndex(std::vector<float> V, float treshold, int start=0){
     return 0;
 }
 
-///////////////////
+///////////////////////////////////////////////////////////////////////////////
 // the main loop //
 ///////////////////
 
@@ -127,7 +127,7 @@ int main(int argc, char *argv[])
     if(!fOutput.sucess){
         std::cout << "[ERROR] issue with data file..." << std::endl;
         return -2;
-    }
+        }
 
     fileData = fOutput.strMatrix;
 
@@ -135,44 +135,45 @@ int main(int argc, char *argv[])
     if(!fOutput.sucess){
         std::cout << "[ERROR] issue with data parse..." << std::endl;
         return -3;
-    }
+        }
     fileData.clear();
 
     fileFloatData = fOutput.fMatrix;
     int columns = fileFloatData.size();
 
-    for (int col=0; col < fileFloatData.size(); col++){
+    for (int col=0; col < columns; col++){
         std::vector<float> V;
         V = normalizeFloatVec(fileFloatData[col]);
         fileFloatData[col] = V;
-    }
+        }
 
+    // /////////////////////////////////////////////////////////////////
+    // from here the fileFloatData vector have all the data prepared  //
+    // /////////////////////////////////////////////////////////////////
+
+    // using the last data column as sync signal
     int videoSyncIndex = findIndex(fileFloatData[columns -1], 1.0f, 1);
     std::cout << "video sync index " << videoSyncIndex << std::endl;
-    int data_end = fileFloatData[0].size() - videoSyncIndex;
 
+    // zoom plot
     int plotWpx = 800;
     int plotHpx = 800;
     int pixelYpos = plotHpx / 2;
 
     cv::Mat plotFrame(plotHpx, plotWpx, CV_8UC3, cv::Scalar(0,0,0));
 
+    // full plot 
+    // vector with the plots to draw
+    std::vector<int> to_plot = {2,3,4};
+    int plots_n = to_plot.size();
+
     int fullPlotWpx = 800;
-    int fullPlotHpx = 300;
-    int posY = fullPlotHpx / 2;
-    float plotYscale = (fullPlotHpx - 10) / 2.0f;
+    int fullPlotHpx = 120 * plots_n;
 
     cv::Mat fullPlotFrame(fullPlotHpx + 50, fullPlotWpx, CV_8UC3, cv::Scalar(0,0,0));
     fullPlotFrame = cv::Scalar(0,0,0);
-    // axis lines
-    cv::line(fullPlotFrame, cv::Point(0,posY), cv::Point(fullPlotWpx, posY),cv::Scalar(255,255,255),1,8,0);
-    // adding the keys info text
-    std::string keys_desc = "<--(H) |<-(J) | [K] | (L)-> | (;)-->       (-)/(+) change play speed";
-    cv::putText(fullPlotFrame, keys_desc, cv::Point((fullPlotWpx - 7*keys_desc.size()) / 2,fullPlotHpx+10), cv::FONT_HERSHEY_SIMPLEX,0.4,cv::Scalar(200,200,200),1,cv::LINE_AA);
-    keys_desc = "(E) set current frame as end lock (R) release end lock  ([) zoom in  (]) zoom out";
-    cv::putText(fullPlotFrame, keys_desc, cv::Point((fullPlotWpx - 7*keys_desc.size()) / 2,fullPlotHpx+30), cv::FONT_HERSHEY_SIMPLEX,0.4,cv::Scalar(200,200,200),1,cv::LINE_AA);
 
-    // figuring out the step for data plot
+    // figuring out the  X step for data plot
     int dataStep = 1;
 
     if (fileFloatData[4].size() > fullPlotWpx){
@@ -181,21 +182,41 @@ int main(int argc, char *argv[])
     int dXpx = fullPlotWpx * dataStep / fileFloatData[0].size();
     dXpx = (dXpx < 1)? 1:dXpx;
 
+    // figuring out the Y position and scale
+    float plotYscale = (fullPlotHpx - 10 * plots_n - 10) / (2.0f * plots_n);
 
-    // plotting the whole plot-lines
-    int posX = 0;
-    int posX1 = 0;
+    int posY = 10 - plotYscale;
 
-    for (int idx=1; idx < fileFloatData[4].size()-dataStep; idx += dataStep){
-        // starting from one as the 0 is the added max value
-        posX1 += dXpx;
+        for (int idx=0; idx < to_plot.size(); idx++){
 
-        float pointVal0 = posY - (int)(fileFloatData[4][idx] * plotYscale);
-        float pointVal1 = posY - (int)(fileFloatData[4][idx + dataStep] * plotYscale);
+        int p = to_plot[idx];
+        posY += 2 * plotYscale + 10;
 
-        cv::line(fullPlotFrame, cv::Point(posX, pointVal0), cv:: Point(posX1, pointVal1),cv::Scalar(0,255,0),1,8,0);
-        posX = posX1;
+        // X axis line
+        cv::line(fullPlotFrame, cv::Point(0,posY), cv::Point(fullPlotWpx, posY),cv::Scalar(255,255,255),1,8,0);
+
+        // plotting the whole plot-lines
+            int posX = 0;
+            int posX1 = 0;
+
+            for (int idx=1; idx < fileFloatData[p].size()-dataStep; idx += dataStep){
+                // starting from one as the 0 is the added max value
+                posX1 += dXpx;
+
+                float pointVal0 = posY - (int)(fileFloatData[p][idx] * plotYscale);
+                float pointVal1 = posY - (int)(fileFloatData[p][idx + dataStep] * plotYscale);
+
+                cv::line(fullPlotFrame, cv::Point(posX, pointVal0), cv:: Point(posX1, pointVal1),cv::Scalar(0,255,0),1,8,0);
+                posX = posX1;
+            }
     }
+
+    // adding the keys info text
+    std::string keys_desc = "<--(H) |<-(J) | [K] | (L)-> | (;)-->       (-)/(+) change play speed";
+    cv::putText(fullPlotFrame, keys_desc, cv::Point((fullPlotWpx - 7*keys_desc.size()) / 2,fullPlotHpx+10), cv::FONT_HERSHEY_SIMPLEX,0.4,cv::Scalar(200,200,200),1,cv::LINE_AA);
+    keys_desc = "(E) set current frame as end lock (R) release end lock  ([) zoom in  (]) zoom out";
+    cv::putText(fullPlotFrame, keys_desc, cv::Point((fullPlotWpx - 7*keys_desc.size()) / 2,fullPlotHpx+30), cv::FONT_HERSHEY_SIMPLEX,0.4,cv::Scalar(200,200,200),1,cv::LINE_AA);
+
 
     // output some info
     std::cout << "Data step: " << dataStep << std::endl;
@@ -206,14 +227,6 @@ int main(int argc, char *argv[])
     cv::Mat videoFrame;
     std::vector <cv::Mat> frame_buffer;
     cv::Mat fullPlot;
-
-    // brut-force hack to skip 500 frames of video
-    // this is to avoid frame mistakes due to the
-    // compression and it key frames stuff
-    // mentioned here:
-    // https://stackoverflow.com/questions/19404245/opencv-videocapture-set-cv-cap-prop-pos-frames-not-working
-    //for (int idx = 0; idx < 500; idx++)
-        //cap >> videoFrame;
 
     // skipping the video to 500 frame
     int video_start_frame = 500;
@@ -230,19 +243,26 @@ int main(int argc, char *argv[])
 
     int playDelay = 1;
     int plotW = 100;
-    plotYscale = (plotHpx - 10) / 2.0f;
+    plotYscale = (plotHpx - 10 * plots_n - 20) / (2.0f * plots_n);
 
-    // /////////// //
+
+
+
+
+
+    // ////////////////////////////////////////////////////////////////////////
     // The loop   //
     // ////////// //
+
     std::cout << "Starting main loop..." << std::endl;
     while (true){
+
         klatka_max = cv::max(klatka_total, klatka_max);
 
         // checking  if the play reached the stop position
         if (klatka_total >= klatka_stop && step == 1){
             step = 0;
-        }
+            }
 
         // if we are at the end of buffer we read next frames from file
         if (step == 1 && (klatka >= frame_buffer.size()-1 || first_loop)){
@@ -276,6 +296,7 @@ int main(int argc, char *argv[])
 
         // working on the graphs
 
+        // ////////////////////////////////////////////////////////////////////
         // zoomed frame
         plotFrame = cv::Scalar(0,0,0);
 
@@ -285,34 +306,42 @@ int main(int argc, char *argv[])
 
         int plotdX = (int)((float)plotWpx / (2.0f * plotW));
 
-        int pixelYpos = plotHpx / 2;
+        int pixelYpos = 10 - plotYscale;
 
-        // axis lines
-        cv::line(plotFrame, cv::Point(0,pixelYpos), cv::Point(plotWpx, pixelYpos),cv::Scalar(255,255,255),1,8,0);
-        cv::line(plotFrame, cv::Point(plotWpx/2,0), cv::Point(plotWpx/2, plotHpx),cv::Scalar(255,255,255),1,8,0);
+        // looping over plots
+        for (int idx=0; idx < to_plot.size(); idx++){
 
-        // drawing right from cursor
-        int pixelXpos0 = plotWpx / 2;
-        for (int idx = plotCenterIndex; idx < plotEndIdx+1; idx++){
-            int pixelXpos1 = pixelXpos0 + plotdX;
-            float pointValue0 = pixelYpos - (int)(fileFloatData[4][idx] * plotYscale);
-            float pointValue1 = pixelYpos - (int)(fileFloatData[4][idx + 1] * plotYscale);
+            int p = to_plot[idx];
+            pixelYpos += 2 * plotYscale + 10;
 
-            cv::line(plotFrame, cv::Point(pixelXpos0,pointValue0), cv:: Point(pixelXpos1, pointValue1),cv::Scalar(0,255,0),1,8,0);
-            pixelXpos0 = pixelXpos1;
+            // axis lines
+            cv::line(plotFrame, cv::Point(0,pixelYpos), cv::Point(plotWpx, pixelYpos),cv::Scalar(255,255,255),1,8,0);
+            cv::line(plotFrame, cv::Point(plotWpx/2,0), cv::Point(plotWpx/2, plotHpx),cv::Scalar(255,255,255),1,8,0);
+
+            // drawing right from cursor
+            int pixelXpos0 = plotWpx / 2;
+            for (int idx = plotCenterIndex; idx < plotEndIdx+1; idx++){
+                int pixelXpos1 = pixelXpos0 + plotdX;
+                float pointValue0 = pixelYpos - (int)(fileFloatData[p][idx] * plotYscale);
+                float pointValue1 = pixelYpos - (int)(fileFloatData[p][idx + 1] * plotYscale);
+
+                cv::line(plotFrame, cv::Point(pixelXpos0,pointValue0), cv:: Point(pixelXpos1, pointValue1),cv::Scalar(0,255,0),1,8,0);
+                pixelXpos0 = pixelXpos1;
+            }
+
+            // drawing left from cursor
+            pixelXpos0 = plotWpx / 2;
+            for (int idx = plotCenterIndex-1; idx > plotStartIdx-1 ; idx--){
+                int pixelXpos1 = pixelXpos0 - plotdX;
+                float pointValue1 = pixelYpos - (int)(fileFloatData[p][idx] * plotYscale);
+                float pointValue0 = pixelYpos - (int)(fileFloatData[p][idx + 1] * plotYscale);
+                cv::line(plotFrame, cv::Point(pixelXpos0,pointValue0), cv:: Point(pixelXpos1, pointValue1),cv::Scalar(0,255,0),1,8,0);
+                pixelXpos0 = pixelXpos1;
+            }
         }
 
-        // drawing left from cursor
-        pixelXpos0 = plotWpx / 2;
-        for (int idx = plotCenterIndex-1; idx > plotStartIdx-1 ; idx--){
-            int pixelXpos1 = pixelXpos0 - plotdX;
-            float pointValue1 = pixelYpos - (int)(fileFloatData[4][idx] * plotYscale);
-            float pointValue0 = pixelYpos - (int)(fileFloatData[4][idx + 1] * plotYscale);
-            cv::line(plotFrame, cv::Point(pixelXpos0,pointValue0), cv:: Point(pixelXpos1, pointValue1),cv::Scalar(0,255,0),1,8,0);
-            pixelXpos0 = pixelXpos1;
-        }
 
-        // full plot frame
+        // full plot frame adding cursors
         int cursorX = dXpx * (1 + plotCenterIndex) / dataStep;
         int cursorXL = dXpx * (1 + plotCenterIndex - plotW) / dataStep;
         int cursorXR = dXpx * (1 + plotCenterIndex + plotW) / dataStep;
