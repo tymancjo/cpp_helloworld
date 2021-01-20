@@ -34,7 +34,6 @@ results readFileAsText(std::string sFilename,  char deliminator = ';')
                 if (line.at(0) != '#'){
                     std::istringstream iss(line);
                     std::string token;
-
                     std::vector < std::string> lins;
                     while(std::getline(iss, token, deliminator)){
                         boost::trim(token);
@@ -103,6 +102,20 @@ int findIndex(std::vector<float> V, float treshold, int start=0){
     return 0;
 }
 
+std::vector<std::string> splitLine(std::string line, char deliminator = ';'){
+
+    std::istringstream iss(line);
+    std::string token;
+    std::vector < std::string> lins;
+
+    while(std::getline(iss, token, deliminator)){
+        boost::trim(token);
+        boost::replace_all(token,",",".");
+        lins.push_back(token);
+    }
+    return lins;
+}
+
 ///////////////////////////////////////////////////////////////////////////////
 // the main loop //
 ///////////////////
@@ -128,9 +141,29 @@ int main(int argc, char *argv[])
     std::string input_video_file = fOutput.strMatrix[0][0];
     std::string input_csv_file = fOutput.strMatrix[1][0];
 
+    // reading which data columns to general plot from config file
+    std::vector<int> to_plot;
+    for (int i=0; i < fOutput.strMatrix[2].size(); i++){
+        std::stringstream iss(fOutput.strMatrix[2][i]);
+        int val;
+            if (iss >> val) {
+                to_plot.push_back(val);
+            }
+    }
+    
+
+    // reading which data columns to zoom plot from config file
+    std::vector<int> to_zoom_plot;
+    for (int i=0; i < fOutput.strMatrix[3].size(); i++){
+        std::stringstream iss(fOutput.strMatrix[3][i]);
+        int val;
+            if (iss >> val) {
+                to_zoom_plot.push_back(val);
+            }
+    }
 
 
-    //std::string input_file = "/home/tymancjo/LocalGit/ABB/ptviewer/video/15122020_Jacek_M_GErapid_11419.mp4";
+
     cv::VideoCapture cap(input_video_file);
     int total_video_frames =  cap.get(cv::CAP_PROP_FRAME_COUNT);
 
@@ -140,7 +173,6 @@ int main(int argc, char *argv[])
     // the csv file load drill
     std::vector <std::vector<std::string>> fileData;
     std::vector <std::vector<float>> fileFloatData;
-    //std::string file_to_load = "/home/tymancjo/LocalGit/ABB/ptviewer/csv_data/fileRecording11419.txt";
 
     fOutput = readFileAsText(input_csv_file, ';' );
 
@@ -184,7 +216,7 @@ int main(int argc, char *argv[])
 
     // full plot 
     // vector with the plots to draw
-    std::vector<int> to_plot = {2,3,4};
+    //std::vector<int> to_plot = {2,3,4};
     int plots_n = to_plot.size();
 
     int fullPlotWpx = 800;
@@ -263,6 +295,8 @@ int main(int argc, char *argv[])
 
     int playDelay = 1;
     int plotW = 100;
+
+    plots_n = to_zoom_plot.size();
     plotYscale = (plotHpx - 10 * plots_n - 20) / (2.0f * plots_n);
 
 
@@ -329,9 +363,9 @@ int main(int argc, char *argv[])
         int pixelYpos = 10 - plotYscale;
 
         // looping over plots
-        for (int idx=0; idx < to_plot.size(); idx++){
+        for (int idx=0; idx < to_zoom_plot.size(); idx++){
 
-            int p = to_plot[idx];
+            int p = to_zoom_plot[idx];
             pixelYpos += 2 * plotYscale + 10;
 
             // axis lines
