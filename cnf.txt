@@ -1,10 +1,14 @@
 # Data Player config file. Order of non commented lines is important!
-# (1)vide file to load
+# (0)vide file to load
 /home/tymancjo/LocalGit/ABB/ptviewer/video/15122020_Jacek_M_GErapid_11419.mp4
-# (2)csv data file to load
+# (1)csv data file to load
 /home/tymancjo/LocalGit/ABB/ptviewer/csv_data/fileRecording11419.txt
-# (3)columns to be plotted on general plot counting form 1
--5;6;7;4
-# (4)columns to be plotted on zoom plot counting form 1
--5
+# (2)columns to be plotted on general plot counting form 1
+-5;6;7;1
+# (3)columns to be plotted on zoom plot counting form 1
+-5;4
+# (4)video sync frame - video frame thet syncs with the video sync signal
+500
+# (5) video sync signal column counting from 1 - when the data in this column rise from 0 to 1 it is the video sync position
+9
 # End of file

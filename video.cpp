@@ -138,6 +138,8 @@ int main(int argc, char *argv[])
     }
     
     // reading the config parameters
+    // all columns count in config starts from 1 
+    // just for easier human readability
     std::string input_video_file = fOutput.strMatrix[0][0];
     std::string input_csv_file = fOutput.strMatrix[1][0];
 
@@ -168,8 +170,25 @@ int main(int argc, char *argv[])
         return -4;
     }
 
+    // reading the video sync frame from config
+    int video_start_frame = 500;
+    {
+    std::stringstream iss(fOutput.strMatrix[4][0]);
+        int val;
+            if (iss >> val) {
+                video_start_frame = val;
+            }
+    }
 
-
+    // reading the video sync signal column
+    int video_sync_idx = 0;
+    {
+    std::stringstream iss(fOutput.strMatrix[5][0]);
+        int val;
+            if (iss >> val) {
+                video_sync_idx = val - 1;
+            }
+    }
 
     cv::VideoCapture cap(input_video_file);
     int total_video_frames =  cap.get(cv::CAP_PROP_FRAME_COUNT);
@@ -210,8 +229,13 @@ int main(int argc, char *argv[])
     // from here the fileFloatData vector have all the data prepared  //
     // /////////////////////////////////////////////////////////////////
 
-    // using the last data column as sync signal
-    int videoSyncIndex = findIndex(fileFloatData[columns -1], 1.0f, 1);
+    // Detecting data sample rate
+    float sample_rate;
+    sample_rate = 1.0f / (fileFloatData[0][0]*(fileFloatData[0][2] - fileFloatData[0][1]));
+    std::cout << "Detected data sample rate: " << sample_rate << " [Sampl/s]"<< std::endl;
+
+
+    int videoSyncIndex = findIndex(fileFloatData[video_sync_idx], 1.0f, 1);
     std::cout << "video sync index " << videoSyncIndex << std::endl;
 
     // zoom plot
@@ -290,7 +314,6 @@ int main(int argc, char *argv[])
     cv::Mat fullPlot;
 
     // skipping the video to 500 frame
-    int video_start_frame = 500;
     cap.set(cv::CAP_PROP_POS_FRAMES, video_start_frame);
 
     int klatka_stop = 30000; // just something that rather be always way more then frames
