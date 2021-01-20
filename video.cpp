@@ -162,6 +162,13 @@ int main(int argc, char *argv[])
             }
     }
 
+    // Sanity check for the incoming data
+    if (to_plot.size() < 1 || to_zoom_plot.size() < 1){
+        std::cout << "[ERROR] No columns to plot identified in config...";
+        return -4;
+    }
+
+
 
 
     cv::VideoCapture cap(input_video_file);
@@ -228,7 +235,7 @@ int main(int argc, char *argv[])
     // figuring out the  X step for data plot
     int dataStep = 1;
 
-    if (fileFloatData[4].size() > fullPlotWpx){
+    if (fileFloatData[0].size() > fullPlotWpx){
        dataStep = fileFloatData[0].size() / fullPlotWpx;
     }
     int dXpx = fullPlotWpx * dataStep / fileFloatData[0].size();
@@ -241,7 +248,9 @@ int main(int argc, char *argv[])
 
         for (int idx=0; idx < to_plot.size(); idx++){
 
-        int p = to_plot[idx];
+        int p = abs(to_plot[idx]);
+        int mp = p / to_plot[idx];
+        p = p - 1;
         posY += 2 * plotYscale + 10;
 
         // X axis line
@@ -255,8 +264,8 @@ int main(int argc, char *argv[])
                 // starting from one as the 0 is the added max value
                 posX1 += dXpx;
 
-                float pointVal0 = posY - (int)(fileFloatData[p][idx] * plotYscale);
-                float pointVal1 = posY - (int)(fileFloatData[p][idx + dataStep] * plotYscale);
+                float pointVal0 = posY - (int)(fileFloatData[p][idx] * mp * plotYscale);
+                float pointVal1 = posY - (int)(fileFloatData[p][idx + dataStep] * mp * plotYscale);
 
                 cv::line(fullPlotFrame, cv::Point(posX, pointVal0), cv:: Point(posX1, pointVal1),cv::Scalar(0,255,0),1,8,0);
                 posX = posX1;
@@ -365,7 +374,9 @@ int main(int argc, char *argv[])
         // looping over plots
         for (int idx=0; idx < to_zoom_plot.size(); idx++){
 
-            int p = to_zoom_plot[idx];
+            int p = abs(to_zoom_plot[idx]);
+            int mp = p / to_zoom_plot[idx];
+            p = p - 1;
             pixelYpos += 2 * plotYscale + 10;
 
             // axis lines
@@ -376,8 +387,8 @@ int main(int argc, char *argv[])
             int pixelXpos0 = plotWpx / 2;
             for (int idx = plotCenterIndex; idx < plotEndIdx+1; idx++){
                 int pixelXpos1 = pixelXpos0 + plotdX;
-                float pointValue0 = pixelYpos - (int)(fileFloatData[p][idx] * plotYscale);
-                float pointValue1 = pixelYpos - (int)(fileFloatData[p][idx + 1] * plotYscale);
+                float pointValue0 = pixelYpos - (int)(fileFloatData[p][idx] * mp * plotYscale);
+                float pointValue1 = pixelYpos - (int)(fileFloatData[p][idx + 1] * mp * plotYscale);
 
                 cv::line(plotFrame, cv::Point(pixelXpos0,pointValue0), cv:: Point(pixelXpos1, pointValue1),cv::Scalar(0,255,0),1,8,0);
                 pixelXpos0 = pixelXpos1;
@@ -387,8 +398,8 @@ int main(int argc, char *argv[])
             pixelXpos0 = plotWpx / 2;
             for (int idx = plotCenterIndex-1; idx > plotStartIdx-1 ; idx--){
                 int pixelXpos1 = pixelXpos0 - plotdX;
-                float pointValue1 = pixelYpos - (int)(fileFloatData[p][idx] * plotYscale);
-                float pointValue0 = pixelYpos - (int)(fileFloatData[p][idx + 1] * plotYscale);
+                float pointValue1 = pixelYpos - (int)(fileFloatData[p][idx] * mp * plotYscale);
+                float pointValue0 = pixelYpos - (int)(fileFloatData[p][idx + 1] * mp * plotYscale);
                 cv::line(plotFrame, cv::Point(pixelXpos0,pointValue0), cv:: Point(pixelXpos1, pointValue1),cv::Scalar(0,255,0),1,8,0);
                 pixelXpos0 = pixelXpos1;
             }

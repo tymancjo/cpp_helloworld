@@ -1,9 +1,10 @@
-# vide file to load
+# Data Player config file. Order of non commented lines is important!
+# (1)vide file to load
 /home/tymancjo/LocalGit/ABB/ptviewer/video/15122020_Jacek_M_GErapid_11419.mp4
-# csv data file to load
+# (2)csv data file to load
 /home/tymancjo/LocalGit/ABB/ptviewer/csv_data/fileRecording11419.txt
-# columns to be plotted on general plot
-3;4;5;6
-# columns to be plotted on zoom plot
-4
+# (3)columns to be plotted on general plot counting form 1
+-5;6;7;4
+# (4)columns to be plotted on zoom plot counting form 1
+-5
 # End of file
